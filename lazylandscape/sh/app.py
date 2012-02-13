@@ -8,6 +8,7 @@ from django.template import RequestContext
 from django.http import HttpResponseRedirect
 from django.utils.html import escape
 from django.views.decorators.csrf import csrf_exempt
+from django.core.urlresolvers import reverse
 
 from sh.models import ShClasses
 
@@ -62,6 +63,8 @@ def exec_(request, cls):
         return HttpResponse('<h2>%s not yet supported</h2>' % cx.lang) 
         
     else:
-        return HttpResponseRedirect('/login')
+        login_url = '?'.join([reverse('django.contrib.auth.views.login'), '='.join(['next', reverse('sh.app.exec_', args=[cls])])])
+        print login_url
+        return  HttpResponseRedirect(login_url)
     
     
