@@ -12,41 +12,53 @@ from django.core.urlresolvers import reverse
 
 from sh.models import ShClasses
 
+tab = '    '
     
 def execPython(cls, request):
-    s = '\n'.join([cls.source() ,
-                    '__lazylandscape_app = %s_%s()' % (cls.field,cls.name),
-                    '__lazylandscape_app.app()',
+    app = '\n'.join(['lazylandscape_app = %s.%s()' % (cls.field,cls.name),
+                    'lazylandscape_app.app()',
                     '\n'])
-    try:
-        sx = compile(s, '<%s.%s>' % (cls.field,cls.name), 'exec')
-    except SyntaxError as se:
-        r = []
-        r.append('<h2>SyntaxError</h2> <a href="#error_%d">%s</a> ' % (se.lineno, str(se)))
-        c = 0
-        for l in s.splitlines():
-            if c == se.lineno:
-                r.append('<div id="error_%d"><span style="background-color:red"> %d :</span><code>%s</code> </div>' % (c,c,escape(l)))
-            else:
-                r.append('<div><span style="background-color:#aaa"> %d :</span><code>%s</code> </div>' % (c,escape(l)))
-            c += 1
-        return HttpResponse(''.join(r))
-        
-        
+                    
     response = HttpResponse('')
     g = {
         "__builtins__" : __builtins__,
         "request" : request,
-        "escape" : escape,
         "response" : response,
-        "HttpResponse" : HttpResponse,
         "__name__" : __name__,
         "ShClasses" : ShClasses,
         }
-    g['request'] = request
-    g['response'] = response
+        
     
-    eval(sx, g, {})
+    for i in cls.source():
+        s = []
+        #s.append('\ng = globals()\n')
+        f, o = i[0],i[1]
+        s.append('class %s:'%f)
+        for v in  o:
+            s.append(v['source'])
+        else:
+            for v in  o:
+                s.append(v['source'])
+                
+        cs = ''.join(s)
+        print(cs)
+        try:
+            cx = compile(cs, '<%s>' % (f), 'exec')
+            eval(cx,g)
+        except SyntaxError as se:
+            r = []
+            r.append('<h2>SyntaxError</h2> <a href="#error_%d">%s</a> ' % (se.lineno, str(se)))
+            c = 0
+            for l in cs.splitlines():
+                if c == se.lineno:
+                    r.append('<div id="error_%d"><span style="background-color:red"> %d :</span><code>%s</code> </div>' % (c,c,escape(l)))
+                else:
+                    r.append('<div><span style="background-color:#aaa"> %d :</span><code>%s</code> </div>' % (c,escape(l)))
+                c += 1
+            return HttpResponse(''.join(r))
+        
+    appx = compile(app, '<App>', 'exec')
+    eval(appx, g)
     return response
     
 @csrf_exempt

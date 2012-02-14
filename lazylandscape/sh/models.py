@@ -14,13 +14,15 @@ import reversion
 
 newline = "\n"
 tab = "    "
+tab2 = 2 * tab
+tab3 = 3 * tab
 
 class ShClasses(models.Model):
     #id = models.IntegerField(null=False, primary_key=True, blank=False)
     name = models.CharField(max_length=256, blank=False)
     comment = models.TextField(blank=True)
     field = models.CharField(max_length=256, blank=False)
-    lang = models.CharField(max_length=32, blank=False, choices=[['python','Python'],['php','PHP'],['js','Javascript']])
+    lang = models.CharField(max_length=32, blank=False, choices=[['python','Python'],['js','Javascript']])
     public = models.BooleanField(default=False)
     
     parents = models.ManyToManyField('self',db_table="ll_parents",blank=True)
@@ -39,36 +41,34 @@ class ShClasses(models.Model):
     def str(self):
         return self.__unicode__()
         
-    def write_class_python(self, wp):
-        if self.id in wp:
-            return
-        
-        wp.append(self.id)
-        ret = [newline]
-        
-        if hasattr(self, 'rel_target'):
-            for r in self.rel_target.all():
-                ret.append(r.write_class_python(wp))
-        
-        #for p in self.deps.all():
-            #ret.append(ShClasses.objects.get(id=p.dep).write_class_python(wp))
-            
-        #for p in self.parents.all():
-            #ret.append(ShClasses.objects.get(id=p.dep).write_class_python(wp))
+    def write_class_python(self, ccontrol, clist, order):
+        if self.id in ccontrol:
+            return 
+        #for i in dir(self):
+            #if i != 'objects':
+                #print '%s => %s' % (i, getattr(self,i))
+                
+        ret = []
+        ccontrol.append(self.id)
+        #if hasattr(self, 'rel_target'):
+        for r in self.deps.all():
+            if r is not None:
+                r.write_class_python(ccontrol, clist, order)
             
         extend = []
-        if hasattr(self, 'rel_target'):
-            for p in self.rel_target.filter(name='parent'):
-                #parent = ShClasses.objects.get(id=p.parent)
-                extend.append(p.field + '_' + p.name)
-        
+        for r in self.parents.all():
+            if r is not None:
+                r.write_class_python(ccontrol, clist, order)
+                extend.append(p.field + '.' + p.name)
+            
+        #ret.append(newline+'class ' + self.field+ ':')
         if len(extend) > 0:
-            ret.append(newline+'class ' + self.field + '_' + self.name + '('+ ','.join(extend) +'):'+ newline)
+            ret.append(newline+tab+'class ' + self.name + '('+ ','.join(extend) +'):'+ newline)
         else:
-            ret.append(newline+'class ' + self.field + '_' + self.name + '(object):' + newline)
+            ret.append(newline+tab+'class ' + self.name + '(object):' + newline)
                 
         for a in self.attrs.all():
-            ret.append(tab + a.name + ' =  ' + a.value + newline)
+            ret.append(tab2 + a.name + ' =  ' + a.value + newline)
         
         for m in self.methods.all():
             args = ['self']
@@ -76,22 +76,57 @@ class ShClasses(models.Model):
                 if len(a.strip()) > 0:
                     args.append(a)
             hasBody = len(m.body.strip()) > 0
-            tab2 = tab+tab
             if hasBody:
                 tabBody = []
                 for l in m.body.splitlines():
-                    tabBody.append(''.join([tab2,l,newline]))
-                ret.append( newline.join([ tab + 'def ' + m.name +'(' + ','.join(args) + '):', tab2, ''.join(tabBody) ,newline]) )
+                    tabBody.append(''.join([tab3,l,newline]))
+                ret.append( newline.join([ tab2 + 'def ' + m.name +'(' + ','.join(args) + '):', ''.join(tabBody) ,newline]) )
             else:
-                fname = tab + 'def ' + m.name +'(' + ','.join(args) + '):'
-                ret.append( newline.join([ fname, tab2 + 'pass' , newline ] ) )
+                fname = tab2 + 'def ' + m.name +'(' + ','.join(args) + '):'
+                ret.append( newline.join([ fname, tab3 + 'pass' , newline ] ) )
             
         ret.append(newline)
-        return ''.join(ret)  
+        clist.append({
+            'field' : self.field,
+            'name' : self.name,
+            'source' : ''.join(ret),
+            'order' : order[0]
+            })
+            
+        order[0] -= 1
+        print 'ORDER (%s) %d'%(self.name, order[0])
+      
+    def sortSource(self, a , b):
+        sa = a['order']
+        sb = b['order']
+        if sa > sb:
+            return -1
+        if sa < sb:
+            return 1
+        return 0
+        
+    def hashSource(self, clist):
+        clist.sort(self.sortSource)
+        ret = []
+        cur = []
+        f = ''
+        for i in clist:
+            if f != i['field']:
+                if cur:
+                    ret.append((f, cur))
+                    cur = []
+                f = i['field']
+                
+            cur.append(i)
+        if cur:
+            ret.append((f, cur))
+        return ret
         
     def get_python_source(self):
-        wp = []
-        return self.write_class_python( wp)
+        ccontrol = []
+        clist = []
+        self.write_class_python(ccontrol, clist, [1024])
+        return self.hashSource(clist)
         
     def source(self):
         if self.lang == 'python':

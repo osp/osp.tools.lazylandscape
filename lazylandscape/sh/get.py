@@ -18,11 +18,15 @@ def source_(request, field, cls):
     except :
         raise Http404
     
-    for i in cx.versions:
-        print '%d' % (i.revision_id)
+    s = []
+    for i in cx.source():
+        f, o = i[0],i[1]
+        s.append('class %s:'%f)
+        for v in  o:
+            s.append(v['source'])
     
     
-    return HttpResponse('<pre>%s</pre>' % escape(cx.source()))  
+    return HttpResponse('<pre>%s</pre>' % escape(''.join(s)))  
         
     
     
