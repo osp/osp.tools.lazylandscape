@@ -36,9 +36,9 @@ def execPython(cls, request):
         s.append('class %s:'%f)
         for v in  o:
             s.append(v['source'])
-        else:
-            for v in  o:
-                s.append(v['source'])
+        #else:
+            #for v in  o:
+                #s.append(v['source'])
                 
         cs = ''.join(s)
         print(cs)
