@@ -25,8 +25,8 @@ class ShClasses(models.Model):
     lang = models.CharField(max_length=32, blank=False, choices=[['python','Python'],['js','Javascript']])
     public = models.BooleanField(default=False)
     
-    parents = models.ManyToManyField('self',db_table="ll_parents",blank=True)
-    deps = models.ManyToManyField('self',db_table="ll_deps",blank=True)
+    parents = models.ManyToManyField('self',db_table="ll_parents",related_name='children',  symmetrical=False ,blank=True)
+    deps = models.ManyToManyField('self',db_table="ll_deps",related_name='nodes', symmetrical=False ,blank=True)
     
     class Meta:
         db_table = u'll_classes'
@@ -44,20 +44,24 @@ class ShClasses(models.Model):
     def write_class_python(self, ccontrol, clist, order):
         if self.id in ccontrol:
             return 
-        #for i in dir(self):
-            #if i != 'objects':
-                #print '%s => %s' % (i, getattr(self,i))
+        #print( ((1024 - order[0]) * tab) + '>' +self.name) 
                 
         ret = []
         ccontrol.append(self.id)
         #if hasattr(self, 'rel_target'):
-        for r in self.deps.all():
+        deps = self.deps.all()
+        #for i in dir(deps):
+                #print '%s => %s' % (i, getattr(deps,i))
+        for r in deps:
             if r is not None:
+                print 'DEP of %s => %s' % (self.name, r.name)
                 r.write_class_python(ccontrol, clist, order)
             
         extend = []
-        for r in self.parents.all():
+        parents = self.parents.all()
+        for r in parents:
             if r is not None:
+                print 'PARENT of %s => %s' % (self.name, r.name)
                 r.write_class_python(ccontrol, clist, order)
                 extend.append(p.field + '.' + p.name)
             
@@ -82,6 +86,7 @@ class ShClasses(models.Model):
                     tabBody.append(''.join([tab3,l,newline]))
                 ret.append( newline.join([ tab2 + 'def ' + m.name +'(' + ','.join(args) + '):', ''.join(tabBody) ,newline]) )
             else:
+                print 'WARNING : %s.%s.%s has no body : len(m.body) = %d' % (self.field, self.name, m.name, len(m.body))
                 fname = tab2 + 'def ' + m.name +'(' + ','.join(args) + '):'
                 ret.append( newline.join([ fname, tab3 + 'pass' , newline ] ) )
             

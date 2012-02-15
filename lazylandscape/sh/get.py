@@ -19,7 +19,8 @@ def source_(request, field, cls):
         raise Http404
     
     s = []
-    for i in cx.source():
+    cxs = cx.source()
+    for i in cxs:
         f, o = i[0],i[1]
         s.append('class %s:'%f)
         for v in  o:
