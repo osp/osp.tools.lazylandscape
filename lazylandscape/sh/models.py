@@ -17,6 +17,72 @@ tab = "    "
 tab2 = 2 * tab
 tab3 = 3 * tab
 
+jsClassImpl = """
+function _fieldObjectfindParent()
+{
+        if(this.hasOwnProperty('_cparent'))
+        {
+                if(this._cparent.hasOwnProperty('_T'))
+                {
+                        if(this._cparent._T != this._T)
+                                return this._cparent;
+                        else
+                                return this._cparent.Parent();
+                }
+        }
+        return null;
+}
+
+function _fieldCreateObject(o)
+{
+        for(var i = 0; i < this._class.length; i++)
+        {
+                var c = this._class[i];
+                if(c._T == o)
+                {
+                        var ret = Object.create(c);
+                        Object.defineProperty(ret, "_cparent", {value : ret.__proto__, writable : false, enumerable : false, configurable : false});
+                        // ok, we need a bit of a trick as neither c nor ret got the hasOwnProperty method
+                        ret.hasOwnProperty = Object.prototype.hasOwnProperty;
+                        return ret;
+                }
+        }
+        return null;
+}
+
+
+function _fieldGetClass(o)
+{
+        for(var i = 0; i < this._class.length; i++)
+        {
+                var c = this._class[i];
+                if(c._T == o)
+                {
+                        return c;
+                }
+        }
+        return null;
+}
+
+function _fieldCreateClass(proto)
+{
+        Object.defineProperty(proto, "Type", {value : function(){return this._T}, writable : false, enumerable : false, configurable : false});
+        Object.defineProperty(proto, "_cparent", {value : proto.__proto__, writable : false, enumerable : false, configurable : false});
+        Object.defineProperty(proto, "Parent", {value : _fieldObjectfindParent, writable : false, enumerable : false, configurable : false});
+        proto.hasOwnProperty = Object.prototype.hasOwnProperty;
+        this._class.push(proto);
+}
+
+var _fieldProps = {
+        _class:{value: new Array(), writable: true, configurable: true},
+        New:{value: _fieldCreateObject},
+        CreateClass:{value: _fieldCreateClass},
+        GetClass:{value: _fieldGetClass}
+};
+
+var LazyLandscapeField = Object.create({}, _fieldProps );
+"""
+
 class ShClasses(models.Model):
     #id = models.IntegerField(null=False, primary_key=True, blank=False)
     name = models.CharField(max_length=256, blank=False)
@@ -127,15 +193,67 @@ class ShClasses(models.Model):
             ret.append((f, cur))
         return ret
         
-    def get_python_source(self):
+    def get_python_source(self, wp):
         ccontrol = []
         clist = []
         self.write_class_python(ccontrol, clist, [1024])
         return self.hashSource(clist)
         
+    def write_class_js(self, wp):
+        if self.id in wp:
+            return ''
+            
+        wp.append(self.id)
+        ret = []
+        deps = self.deps.all()
+        for r in deps:
+            if r is not None:
+                ret.append(r.write_class_python(ccontrol, wp))
+                
+        parents = self.parents.all()
+        for r in parents:
+            if r is not None:
+                ret.append(r.write_class_python(ccontrol, wp))
+
+        ret.append('var '+self.field+' = '+self.field+' || Object.create(LazyLandscapeField, field : value : "'+self.field+'");')
+
+        ret.append("(function(field){")
+        ret.append(tab + "var parent = {};")
+        for p in parents:
+            ret.append(tab + 'parent = '+p.field+'+GetClass("'+p.name+'"); ')
+
+
+        ret.append(tab + 'var props = { _T : {value: "'+self.name+'"},')
+
+        for attr in self.attrs.all():
+            ret.append(tab + attr.name +': {value : '+ attr.value +', writable: true, enumerable: true, configurable: true},')
+
+        for m in self.methods.all():
+            ret.append(tab +  m.name + ': {value : function('+ m.args +'){')
+            tabBody = []
+            for l in m.body.splitlines():
+                tabBody.append(''.join([tab2,l,newline]))
+            ret.append(''.join(tabBody))
+            ret.append(tab +'}, writable: true, enumerable: true, configurable: true}, ')
+
+        ret.append(tab +'};')
+        ret.append(tab +'field.CreateClass(Object.create(parent, props)); ');
+        ret.append('})('+ self.field +');')
+
+        return newline.join(ret)        
+        
+    def get_js_source(self):
+        ccontrol = []
+        ret = [jsClassImpl]
+        ret.append( self.write_class_js(ccontrol) )
+        return newline.join(ret)
+        
+        
     def source(self):
         if self.lang == 'python':
             return self.get_python_source()
+        elif self.lang == 'js':
+            return self.get_js_source()
         return ''
         
     def attachRevision(self):

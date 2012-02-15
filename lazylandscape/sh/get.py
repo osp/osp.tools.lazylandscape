@@ -18,16 +18,18 @@ def source_(request, field, cls):
     except :
         raise Http404
     
-    s = []
-    cxs = cx.source()
-    for i in cxs:
-        f, o = i[0],i[1]
-        s.append('class %s:'%f)
-        for v in  o:
-            s.append(v['source'])
-    
-    
-    return HttpResponse('<pre>%s</pre>' % escape(''.join(s)))  
+    if cx.lang == 'python':
+        s = []
+        cxs = cx.source()
+        for i in cxs:
+            f, o = i[0],i[1]
+            s.append('class %s:'%f)
+            for v in  o:
+                s.append(v['source'])
+
+        return HttpResponse('<pre>%s</pre>' % escape(''.join(s)))  
+    elif cx.lang == 'js':
+        return HttpResponse('<pre>%s</pre>' % escape(cx.source())) 
         
     
     
