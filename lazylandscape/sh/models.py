@@ -18,69 +18,58 @@ tab2 = 2 * tab
 tab3 = 3 * tab
 
 jsClassImpl = """
-function _fieldObjectfindParent()
-{
-        if(this.hasOwnProperty('_cparent'))
-        {
-                if(this._cparent.hasOwnProperty('_T'))
-                {
-                        if(this._cparent._T != this._T)
-                                return this._cparent;
-                        else
-                                return this._cparent.Parent();
-                }
-        }
-        return null;
-}
-
-function _fieldCreateObject(o)
-{
-        for(var i = 0; i < this._class.length; i++)
-        {
-                var c = this._class[i];
-                if(c._T == o)
-                {
-                        var ret = Object.create(c);
-                        Object.defineProperty(ret, "_cparent", {value : ret.__proto__, writable : false, enumerable : false, configurable : false});
-                        // ok, we need a bit of a trick as neither c nor ret got the hasOwnProperty method
-                        ret.hasOwnProperty = Object.prototype.hasOwnProperty;
-                        return ret;
-                }
-        }
-        return null;
-}
-
-
-function _fieldGetClass(o)
-{
-        for(var i = 0; i < this._class.length; i++)
-        {
-                var c = this._class[i];
-                if(c._T == o)
-                {
-                        return c;
-                }
-        }
-        return null;
-}
-
-function _fieldCreateClass(proto)
-{
-        Object.defineProperty(proto, "Type", {value : function(){return this._T}, writable : false, enumerable : false, configurable : false});
-        Object.defineProperty(proto, "_cparent", {value : proto.__proto__, writable : false, enumerable : false, configurable : false});
-        Object.defineProperty(proto, "Parent", {value : _fieldObjectfindParent, writable : false, enumerable : false, configurable : false});
-        proto.hasOwnProperty = Object.prototype.hasOwnProperty;
-        this._class.push(proto);
-}
-
-var _fieldProps = {
+var LazyLandscapeField = LazyLandscapeField || Object.create({},  {
         _class:{value: new Array(), writable: true, configurable: true},
-        New:{value: _fieldCreateObject},
-        CreateClass:{value: _fieldCreateClass},
-        GetClass:{value: _fieldGetClass}
-};
-
-var LazyLandscapeField = Object.create({}, _fieldProps );
+        New:{value: function(o)
+            {
+                    for(var i = 0; i < this._class.length; i++)
+                    {
+                            var c = this._class[i];
+                            if(c._T == o)
+                            {
+                                    var ret = Object.create(c);
+                                    Object.defineProperty(ret, "_cparent", {value : ret.__proto__, writable : false, enumerable : false, configurable : false});
+                                    // ok, we need a bit of a trick as neither c nor ret got the hasOwnProperty method
+                                    ret.hasOwnProperty = Object.prototype.hasOwnProperty;
+                                    return ret;
+                            }
+                    }
+                    return null;
+            }},
+        CreateClass:{value: function(proto)
+            {
+                    Object.defineProperty(proto, "Type", {value : function(){return this._T}, writable : false, enumerable : false, configurable : false});
+                    Object.defineProperty(proto, "_cparent", {value : proto.__proto__, writable : false, enumerable : false, configurable : false});
+                    Object.defineProperty(proto, "Parent", {value : function()
+                                                                    {
+                                                                            if(this.hasOwnProperty('_cparent'))
+                                                                            {
+                                                                                    if(this._cparent.hasOwnProperty('_T'))
+                                                                                    {
+                                                                                            if(this._cparent._T != this._T)
+                                                                                                    return this._cparent;
+                                                                                            else
+                                                                                                    return this._cparent.Parent();
+                                                                                    }
+                                                                            }
+                                                                            return null;
+                                                                    }, writable : false, enumerable : false, configurable : false});
+                    proto.hasOwnProperty = Object.prototype.hasOwnProperty;
+                    this._class.push(proto);
+            }},
+        GetClass:{value: function(o)
+            {
+                    for(var i = 0; i < this._class.length; i++)
+                    {
+                            var c = this._class[i];
+                            if(c._T == o)
+                            {
+                                    return c;
+                            }
+                    }
+                    return null;
+            }}
+});
 """
 
 class ShClasses(models.Model):
@@ -193,7 +182,7 @@ class ShClasses(models.Model):
             ret.append((f, cur))
         return ret
         
-    def get_python_source(self, wp):
+    def get_python_source(self):
         ccontrol = []
         clist = []
         self.write_class_python(ccontrol, clist, [1024])

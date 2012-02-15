@@ -27,9 +27,9 @@ def source_(request, field, cls):
             for v in  o:
                 s.append(v['source'])
 
-        return HttpResponse('<pre>%s</pre>' % escape(''.join(s)))  
+        return HttpResponse(''.join(s), content_type="text/plain")  
     elif cx.lang == 'js':
-        return HttpResponse('<pre>%s</pre>' % escape(cx.source())) 
+        return HttpResponse(cx.source(), content_type='application/javascript') 
         
     
     
