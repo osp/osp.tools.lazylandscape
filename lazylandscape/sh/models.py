@@ -31,6 +31,16 @@ var LazyLandscapeField = LazyLandscapeField || Object.create({},  {
                                     Object.defineProperty(ret, "_cparent", {value : ret.__proto__, writable : false, enumerable : false, configurable : false});
                                     // ok, we need a bit of a trick as neither c nor ret got the hasOwnProperty method
                                     ret.hasOwnProperty = Object.prototype.hasOwnProperty;
+                                    var args = Array.prototype.slice.call(arguments);
+                                    args.shift();
+                                    if(ret.__proto__.hasOwnProperty('init') && ((typeof ret.init) == 'function'))
+                                    {
+                                            var init = ret.init;
+                                            if(args.length >= init.length)
+                                                    init.apply(ret, args);
+                                            else
+                                                    throw new Error(ret.Type() +".init() takes "+init.length+" argument(s), "+args.length+" provided");
+                                    }
                                     return ret;
                             }
                     }

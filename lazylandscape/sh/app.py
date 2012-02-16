@@ -14,6 +14,7 @@ from sh.models import ShClasses
 
 tab = '    '
     
+
 def execPython(cls, request):
     app = '\n'.join(['lazylandscape_app = %s.%s()' % (cls.field,cls.name),
                     'lazylandscape_app.app()',
@@ -62,9 +63,9 @@ def execPython(cls, request):
     return response
     
 @csrf_exempt
-def exec_(request, cls):
+def exec_(request, field, cls):
     try:
-        cx = ShClasses.objects.filter(field='Application').filter(name=cls)[0]
+        cx = ShClasses.objects.filter(field=field).filter(name=cls)[0]
     except :
         raise Http404
     

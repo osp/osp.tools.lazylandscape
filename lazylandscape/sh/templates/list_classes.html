@@ -1,17 +1,16 @@
 {% extends "base.html" %}
-
 {% block body %}
 
 <h2>Classes in {{field}}</h2>
 {% for c in clist %}
 <div>
-<a href="{% url sh.get.source_ c.field, c.name %}">{{c.name}}</a> ({{c.lang}}) 
+<a href="{% url sh.get.source_ field=c.field cls=c.name %}">{{c.name}}</a> ({{c.lang}}) 
 
 {% if c.versions %}
 <span>[rev{{ c.versions.0.revision_id }}]</span>
 {% endif %}
 
-{% if field == "Application" %}<a href="{% url sh.app.exec_  c.name %}">run</a> {% endif %}
+{% if field == "Application" or field == 'Service' %}<a href="/{{field}}/{{c.name}}">run</a> {% endif %}
 <p>
 {{c.comment}}
 </p>
