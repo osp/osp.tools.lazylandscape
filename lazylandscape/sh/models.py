@@ -9,6 +9,7 @@
 
 from django.db import models
 from django.forms import ModelForm
+from django.core.signals import *
 
 import reversion
 
@@ -16,6 +17,9 @@ newline = "\n"
 tab = "    "
 tab2 = 2 * tab
 tab3 = 3 * tab
+
+
+
 
 jsClassImpl = """
 var LazyLandscapeField = LazyLandscapeField || Object.create({},  {
@@ -312,5 +316,3 @@ class ShMethods(models.Model):
         db_table = u'll_methods'
         
 reversion.register(ShMethods) 
-
-        
