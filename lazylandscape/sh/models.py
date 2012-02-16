@@ -207,14 +207,14 @@ class ShClasses(models.Model):
         deps = self.deps.all()
         for r in deps:
             if r is not None:
-                ret.append(r.write_class_python(ccontrol, wp))
+                ret.append(r.write_class_js( wp))
                 
         parents = self.parents.all()
         for r in parents:
             if r is not None:
-                ret.append(r.write_class_python(ccontrol, wp))
+                ret.append(r.write_class_js( wp))
 
-        ret.append('var '+self.field+' = '+self.field+' || Object.create(LazyLandscapeField, field : value : "'+self.field+'");')
+        ret.append('var '+self.field+' = '+self.field+' || Object.create(LazyLandscapeField, {field : {value : "'+self.field+'"}});')
 
         ret.append("(function(field){")
         ret.append(tab + "var parent = {};")

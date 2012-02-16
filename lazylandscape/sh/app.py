@@ -9,6 +9,7 @@ from django.http import HttpResponseRedirect
 from django.utils.html import escape
 from django.views.decorators.csrf import csrf_exempt
 from django.core.urlresolvers import reverse
+#from django.contrib.sites.models import Site
 
 from sh.models import ShClasses
 
@@ -20,6 +21,11 @@ def execPython(cls, request):
                     'lazylandscape_app.app()',
                     '\n'])
                     
+    #site = Site.objects.get_current()
+    #site = get_current_site(request)
+    #for i in dir(site.clean_fields):
+        #if i != '_base_manager' and i != 'objects':
+            #print '%s => %s' % (i, getattr(site.clean_fields,i))
     response = HttpResponse('')
     g = {
         "__builtins__" : __builtins__,
@@ -42,7 +48,7 @@ def execPython(cls, request):
                 #s.append(v['source'])
                 
         cs = ''.join(s)
-        print(cs)
+        #print(cs)
         try:
             cx = compile(cs, '<%s>' % (f), 'exec')
             eval(cx,g)
@@ -56,7 +62,7 @@ def execPython(cls, request):
                 else:
                     r.append('<div><span style="background-color:#aaa"> %d :</span><code>%s</code> </div>' % (c,escape(l)))
                 c += 1
-            return HttpResponse(''.join(r))
+            return HttpResponse('\n'.join(r))
         
     appx = compile(app, '<App>', 'exec')
     eval(appx, g)
