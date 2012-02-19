@@ -223,7 +223,7 @@ class ShClasses(models.Model):
         ret.append("(function(field){")
         ret.append(tab + "var parent = {};")
         for p in parents:
-            ret.append(tab + 'parent = '+p.field+'+GetClass("'+p.name+'"); ')
+            ret.append(tab + 'parent = '+p.field+'.'+ 'GetClass("'+p.name+'");')
 
 
         ret.append(tab + 'var props = { _T : {value: "'+self.name+'"},')
